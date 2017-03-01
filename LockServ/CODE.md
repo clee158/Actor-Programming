@@ -1,4 +1,9 @@
-Nodes
+Lock Server with Mutual Exclusion
+=================================
+
+Adapted from page 3 in the [Verdi paper](http://verdi.uwplse.org/verdi.pdf).
+
+Actors
 -----
 
 ```coq
@@ -10,21 +15,21 @@ API
 
 ```coq
 Input := Lock | Unlock
-Out := Locked
+Out := Granted
 ```
 
 Internal Messages
 ----------------
 
 ```coq
-Msg := LockMsg | UnlockMsg | GrantMsg
+Msg := LockMsg | UnlockMsg | GrantedMsg
 ```
 
 State
 -----
 
 ```coq
-State Server := list Name (* head agent holds lock, tail agents wait *)
+State Server := list Name (* agent at head holds lock, tail agents wait *)
 State (Client _) := bool (* true iff client holds lock *)
 
 InitState Server := []
@@ -43,7 +48,8 @@ match n with
   | Lock => 
     send (Server, LockMsg)
   | Unlock =>
-    if s == true then s := false ; send (Server, UnlockMsg)
+    if s == true then 
+      s := false ; send (Server, UnlockMsg))
 ```
 
 Internal Message Handlers
@@ -56,19 +62,20 @@ match n with
   match msg with
   | LockMsg => 
     (* if lock not held, immediately grant *)
-    if s == [] then send (src, GrantMsg) ;
+    if s == [] then send (src, GrantedMsg) ;
     (* add requestor to end of queue *)
     s := s ++ [src]
   | UnlockMsg =>
     (* head of queue no longer holds lock *)
     s := tail s;;
     (* grant lock to next waiting agent, if any *)
-    if s != [] then send (head s, GrantMsg)
+    if s != [] then send (head s, GrantedMsg)
   | _ => nop (* never happens *)
 | Agent _ => 
   match msg with
-  | GrantMsg =>
+  | GrantedMsg =>
     s := true ;
-    output Grant
+    output Granted
   | _ => nop (* never happens *)
 ```
+
