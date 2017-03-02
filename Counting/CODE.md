@@ -13,25 +13,25 @@ API
 
 ```coq
 Inp := SendAggregate | Broadcast | AggregateRequest | LevelRequest | Stop
-Out := AggregateResponse(int) | LevelResponse(option(int))
+Out := AggregateResponse(int) | LevelResponse(option int)
 ```
 
 Internal Messages
 ----------------
 
 ```coq
-Msg ::= Aggregate(int) | Level(option(int)) | Stopped
+Msg ::= Aggregate(int) | Level(option int) | Stopped
 ```
 
 State
 -----
 
 ```coq
-State Root := { aggregate : int ; adjacent : set(Name) ; balance : map(Name, int) }
-State (NonRoot _) := { aggregate : int ; adjacent : set(Name) ; balance : map(Name, int) ; levels : map(Name, int) }
+State Root := { aggregate : int ; adjacent : Set.t ; balance : Map.t int }
+State (NonRoot _) := { aggregate : int ; adjacent : Set.t ; balance : Map.t int ; levels : Map.t int }
 
-InitState Root (neighbors : set(Name) := { 1 ; neighbors ; map.empty }
-InitState (NonRoot _) (neighbors : set(Name)) := { 1 ; neighbors ; map.empty ; map.empty }
+InitState Root (neighbors : Set.t) := { 1 ; neighbors ; Map.empty int }
+InitState (NonRoot _) (neighbors : Set.t) := { 1 ; neighbors ; Map.empty int ; Map.empty int }
 ```
 
 API Handlers
@@ -65,7 +65,6 @@ match n with
       send (dst, Level (level s.adjacent s.levels))
   | LevelRequest =>
     output (level s.adjacent s.levels)
-        
 ```
 
 Internal Message Handlers
@@ -95,5 +94,4 @@ match n with
   | Level None => ...
   | Level (Some lv) => ...
   | Stopped => ...
-end.
 ```
