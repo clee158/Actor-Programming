@@ -27,11 +27,15 @@ State
 -----
 
 ```coq
-State Root := { aggregate : int ; adjacent : Set.t ; balance : Map.t int }
-State (NonRoot _) := { aggregate : int ; adjacent : Set.t ; balance : Map.t int ; levels : Map.t int }
+State Root :=
+ { aggregate : int ; adjacent : Set.t ; balance : Map.t int }
+State (NonRoot _) :=
+ { aggregate : int ; adjacent : Set.t ; balance : Map.t int ; levels : Map.t int }
 
-InitState Root (neighbors : Set.t) := { 1 ; neighbors ; Map.empty int }
-InitState (NonRoot _) (neighbors : Set.t) := { 1 ; neighbors ; Map.empty int ; Map.empty int }
+InitState Root (neighbors : Set.t) :=
+ { 1 ; neighbors ; Map.empty int }
+InitState (NonRoot _) (neighbors : Set.t) :=
+ { 1 ; neighbors ; Map.empty int ; Map.empty int }
 ```
 
 API Handlers
@@ -49,7 +53,7 @@ match n with
   | LevelRequest => 
     output (LevelResponse (Some 0))
   | Stop => nop (* root never terminates *)
-| Nonroot _ =>
+| NonRoot _ =>
   match i with
   | SendAggregate =>
     if s.aggregate != 0 then
@@ -81,14 +85,14 @@ match n with
     match Map.get s.balance src with
     | None => nop (* never happens *)
     | Some a' =>
-      s.aggregate := s.aggregate + a
+      s.aggregate := s.aggregate + a ;
       s.balance := Map.add s.balance src (a' - a)
   | Level _ => nop
   | Stopped =>
     match Map.get s.balance src with
     | None => nop (* never happens *)
     | Some a =>
-      s.aggregate := s.aggregate + a
+      s.aggregate := s.aggregate + a ;
       s.adjacent := Set.remove s.adjacent src
 | NonRoot _ =>
   match msg with 
@@ -99,16 +103,19 @@ match n with
       s.aggregate := s.aggregate + a
       s.balance := Map.add s.balance src (a' - a)
   | Level None =>
-    if level s.adjacent s.levels != level s.adjacent (Map.remove s.levels src) then s.broadcast := true ;
+    if level s.adjacent s.levels != level s.adjacent (Map.remove s.levels src)
+    then s.broadcast := true ;
     s.levels := Map.remove s.levels src
   | Level (Some lv) =>
-    if level s.adjacent s.levels != level s.adjacent (Map.add s.levels src lv) then s.broadcast := true ;
+    if level s.adjacent s.levels != level s.adjacent (Map.add s.levels src lv)
+    then s.broadcast := true ;
     s.levels := Map.add s.levels src lv
   | Stopped =>
     match Map.get s.balance src with
     | None => nop (* never happens *)
     | Some a' =>
-      if level s.adjacent s.levels == level (Set.remove s.adjacent src) (Map.remove s.levels src) then s.broadcast := true ;
+      if level s.adjacent s.levels == level (Set.remove s.adjacent src) (Map.remove s.levels src)
+      then s.broadcast := true ;
       s.aggregate := s.aggregate + a' ;
       s.levels := Map.remove s.levels src ;
       s.adjacent := Set.remove s.adjacent src ;
