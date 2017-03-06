@@ -48,7 +48,7 @@ match n with
   | Broadcast => nop  
   | LevelRequest => 
     output (LevelResponse (Some 0))
-  | Stop => nop
+  | Stop => nop (* root never terminates *)
 | Nonroot _ =>
   match i with
   | SendAggregate =>
@@ -57,14 +57,16 @@ match n with
       | None => nop
       | Some dst =>
         send (dst, Aggregate s.aggregate) ;
-	aggregate := 0
+        s.aggregate := 0
   | AggregateRequest =>
     output (AggrgateResponse s.aggregate)
   | Broadcast =>
-    foreach dst in s.adjacent
-      send (dst, Level (level s.adjacent s.levels))
+    foreach dst in s.adjacent send (dst, Level (level s.adjacent s.levels))
   | LevelRequest =>
     output (level s.adjacent s.levels)
+  | Stop =>
+    foreach dst in s.adjacent send (dst, Stopped) ;
+    halt
 ```
 
 Internal Message Handlers
@@ -90,8 +92,25 @@ match n with
       s.adjacent := Set.remove s.adjacent src
 | NonRoot _ =>
   match msg with 
-  | Aggregate a => ...
-  | Level None => ...
-  | Level (Some lv) => ...
-  | Stopped => ...
+  | Aggregate a =>
+    match Map.get s.balance src with
+    | None => nop (* never happens *)
+    | Some a' =>
+      s.aggregate := s.aggregate + a
+      s.balance := Map.add s.balance src (a' - a)
+  | Level None =>
+    if level s.adjacent s.levels != level s.adjacent (Map.remove s.levels src) then s.broadcast := true ;
+    s.levels := Map.remove s.levels src
+  | Level (Some lv) =>
+    if level s.adjacent s.levels != level s.adjacent (Map.add s.levels src lv) then s.broadcast := true ;
+    s.levels := Map.add s.levels src lv
+  | Stopped =>
+    match Map.get s.balance src with
+    | None => nop (* never happens *)
+    | Some a' =>
+      if level s.adjacent s.levels == level (Set.remove s.adjacent src) (Map.remove s.levels src) then s.broadcast := true ;
+      s.aggregate := s.aggregate + a' ;
+      s.levels := Map.remove s.levels src ;
+      s.adjacent := Set.remove s.adjacent src ;
+      s.balance := Map.remove s.balance src
 ```
