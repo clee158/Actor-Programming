@@ -30,10 +30,10 @@ State
 
 ```coq
 State Server := list Name (* agent at head holds lock, tail agents wait *)
-State (Client _) := bool (* true iff client holds lock *)
+State (Agent _) := bool (* true iff client holds lock *)
 
 InitState Server := []
-InitState (Client _) := false
+InitState (Agent _) := false
 ```
 
 API Handlers
@@ -48,8 +48,7 @@ match n with
   | Lock => 
     send (Server, LockMsg)
   | Unlock =>
-    if s == true then 
-      s := false ; send (Server, UnlockMsg))
+    if s == true then s := false ; send (Server, UnlockMsg)
 ```
 
 Internal Message Handlers
@@ -67,7 +66,7 @@ match n with
     s := s ++ [src]
   | UnlockMsg =>
     (* head of queue no longer holds lock *)
-    s := tail s;;
+    s := tail s ;
     (* grant lock to next waiting agent, if any *)
     if s != [] then send (head s, GrantedMsg)
   | _ => nop (* never happens *)
@@ -78,4 +77,3 @@ match n with
     output Granted
   | _ => nop (* never happens *)
 ```
-
