@@ -1,4 +1,5 @@
-import akka.actor._
+package lockserv
+import akka.actor.Actor
 import scala.collection.mutable.Queue
 
 /* - let Agent class take an output ActorRef to send outputs to */
@@ -106,14 +107,15 @@ object Handler{
     n match {
       case s: Server => {}
       case a: Agent => {
+        val t = n.asInstanceOf[Agent]
         inp match {
           case Lock =>{
-            n.getServer() ! LockMsg
+            t.getServer() ! LockMsg
           }
           case Unlock => {
-            if(n.getState() == true)
-              n.setState(false)
-            n.getServer() ! UnlockMsg
+            if(t.getState() == true)
+              t.setState(false)
+            t.getServer() ! UnlockMsg
           }
         }
       } 
@@ -123,23 +125,25 @@ object Handler{
   def HandleMsg(n: Name, src: Name, msg: Msg) : Unit = {
     n match {
       case s: Server => {
+        val t1 = n.asInstanceOf[Server]
         msg match {
           case LockMsg => {
-            if(n.queueEmpty())
-              n ! GrantedMsg(src) // grant lock to src if lock not held
-            n.addAgent(src)
+            if(t1.queueEmpty())
+              t1 ! GrantedMsg(src.asInstanceof[Agent]) // grant lock to src if lock not held
+            t1.addAgent(src)
           }
           case UnlockMsg => {
-            n.shiftHead()
-            if(!n.queueEmpty())
-              n ! GrantedMsg(n.head) // grant lock to new head
+            t1.shiftHead
+            if(!t1.queueEmpty())
+              t1 ! GrantedMsg(t1.head) // grant lock to new head
           }
         } 
       }
       case a: Agent => {
+        val t2 = n.asInstanceOf[Agent]
         msg match {
           case GrantedMsg(_) => {
-            n.setState(true)
+            t2.setState(true)
             // output Granted
           }
         } 
